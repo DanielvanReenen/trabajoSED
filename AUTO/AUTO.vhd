@@ -94,11 +94,11 @@ begin
 
                 when SALIR =>
                     salida_vector <= last_value; 
-                    salida_salir <= '1'; 
+                    flag <= '1'; 
 
                 when others =>
                     salida_vector <= (others => '0'); 
-                    salida_salir <= '0'; 
+                    flag <= '0'; 
             end case;
         end if;
     end process;
