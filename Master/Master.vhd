@@ -16,8 +16,8 @@ entity Master is
         color      : out std_logic_vector(1 downto 0); -- Indica el color en el que está la FSM
         dutys      : out std_logic_vector(11 downto 0); -- Duty asignado
         duty       : out std_logic_vector(3 downto 0); -- Duty específico para color en estado MAN
-        SET_M      : out std_logic; -- Activo cuando está en estado Manual
-        SET_A      : out std_logic  -- Activo cuando está en estado Automático
+        SET_M      : out std_logic; -- Pulso en estado Manual
+        SET_A      : out std_logic  -- Pulso en estado Automático
     );
 end Master;
 
@@ -26,9 +26,6 @@ architecture Behavioral of Master is
     signal current_state : STATES := REP;
     signal next_state    : STATES;
 begin
-    -- Copiar inputs_in a inputs_out
-    inputs_out <= inputs_in;
-
     -- Registro de estado
     state_register: process (reset, clk)
     begin
@@ -78,6 +75,25 @@ begin
         SET_M <= '0';
         SET_A <= '0';
 
+        -- Control de inputs_out
+        case current_state is
+            when MAN =>
+                if DONE_M = '1' then
+                    inputs_out <= (others => '0'); -- No copiar inputs_in
+                else
+                    inputs_out <= inputs_in; -- Copiar inputs_in
+                end if;
+            when AUT =>
+                if DONE_A = '1' then
+                    inputs_out <= (others => '0'); -- No copiar inputs_in
+                else
+                    inputs_out <= inputs_in; -- Copiar inputs_in
+                end if;
+            when others =>
+                inputs_out <= inputs_in; -- Siempre copiar en otros estados
+        end case;
+
+        -- Asignaciones para los demás puertos
         case current_state is
             when REP =>
                 mode  <= "00"; -- Estado REP
@@ -121,3 +137,4 @@ begin
     end process;
 
 end Behavioral;
+
