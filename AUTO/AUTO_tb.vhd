@@ -1,124 +1,95 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
-entity AUTO_tb is
-end AUTO_tb;
+entity TB_AUTO is
+    -- No ports, es un testbench
+end TB_AUTO;
 
-architecture Behavioral of AUTO_tb is
-    -- Declaración del componente a probar
+architecture Behavioral of TB_AUTO is
+    -- Declaración de señales locales para conectar con el DUT
+    signal clk : std_logic := '0';
+    signal inputs : std_logic_vector(3 downto 0) := (others => '0');
+    signal SETA : std_logic := '0';
+    signal salida_vector : std_logic_vector(11 downto 0);
+
+    -- Declaración de constantes para tiempos de simulación
+    constant clk_period : time := 10 ns;
+
+    -- Instancia del DUT
     component AUTO
         Port (
             clk : in std_logic;
-            reset : in std_logic;
-            btn_avanzar : in std_logic;
-            btn_retroceder : in std_logic;
-            SETA : in std_logic; -- Nueva señal SETA
-            salida_vector : out std_logic_vector(11 downto 0);
-            flag : out std_logic -- Salida flag (antes salida_salir)
+            inputs : in std_logic_vector(3 downto 0);
+            SETA : in std_logic;
+            salida_vector : out std_logic_vector(11 downto 0)
         );
     end component;
 
-    -- Señales internas del testbench
-    signal clk_tb : std_logic := '0';
-    signal reset_tb : std_logic := '0';
-    signal btn_avanzar_tb : std_logic := '0';
-    signal btn_retroceder_tb : std_logic := '0';
-    signal SETA_tb : std_logic := '0'; -- Señal SETA para activar el sistema
-    signal salida_vector_tb : std_logic_vector(11 downto 0);
-    signal flag_tb : std_logic;
-
-    -- Constante para el periodo del reloj
-    constant CLK_PERIOD : time := 10 ns;
-
 begin
-    -- Instancia del módulo AUTO
-    uut: AUTO
-        Port map (
-            clk => clk_tb,
-            reset => reset_tb,
-            btn_avanzar => btn_avanzar_tb,
-            btn_retroceder => btn_retroceder_tb,
-            SETA => SETA_tb,
-            salida_vector => salida_vector_tb,
-            flag => flag_tb
+    -- Conexión del DUT
+    DUT: AUTO
+        port map (
+            clk => clk,
+            inputs => inputs,
+            SETA => SETA,
+            salida_vector => salida_vector
         );
 
-    -- Generación del reloj
-    clk_process : process
+    -- Generador de reloj
+    clk_process: process
     begin
         while true loop
-            clk_tb <= '0';
-            wait for CLK_PERIOD / 2;
-            clk_tb <= '1';
-            wait for CLK_PERIOD / 2;
+            clk <= '0';
+            wait for clk_period / 2;
+            clk <= '1';
+            wait for clk_period / 2;
         end loop;
     end process;
 
-    -- Estímulos de prueba
-    stimulus_process : process
+    -- Proceso de estímulo
+    stimulus_process: process
     begin
-        -- Paso 1: Reset del sistema
-        report "Paso 1: Reset del sistema";
-        reset_tb <= '1';
-        wait for 20 ns;
-        reset_tb <= '0';
+        -- Inicialización
+        SETA <= '0';
+        inputs <= (others => '0');
         wait for 20 ns;
 
-        -- Paso 2: Activar SETA para habilitar el sistema
-        report "Paso 2: Activar SETA para habilitar el sistema";
-        SETA_tb <= '1';
-        wait for 20 ns;
+        -- Salir de RESET
+        SETA <= '1';
+        wait for clk_period;
 
-        -- Paso 3: Transitar a AUTO1
-        report "Paso 3: Transitar a AUTO1";
-        btn_avanzar_tb <= '1';
-        wait for CLK_PERIOD;
-        btn_avanzar_tb <= '0';
-        wait for 200 ns; 
+        -- 1. REPOSO → AUTO1
+        inputs <= "0100";  -- AUTO1
+        wait for 50 * clk_period;
 
-        -- Paso 4: Transitar a AUTO2
-        report "Paso 4: Transitar a AUTO2";
-        btn_avanzar_tb <= '1';
-        wait for CLK_PERIOD;
-        btn_avanzar_tb <= '0';
-        wait for 200 ns; 
+        -- 2. AUTO1 → AUTO2
+        inputs <= "0100";  -- Mantener en AUTO2
+        wait for 50 * clk_period;
 
-        -- Paso 5: Ir al estado SALIR
-        report "Paso 5: Transitar a SALIR";
-        btn_avanzar_tb <= '1';
-        wait for CLK_PERIOD;
-        btn_avanzar_tb <= '0';
-        wait for 40 ns;
+        -- 3. AUTO2 → REPOSO
+        inputs <= "1000";  -- REPOSO
+        wait for 50 * clk_period;
 
-        -- Paso 6: Permanecer en SALIR
-        report "Paso 6: Permanecer en estado SALIR";
-        wait for 100 ns;
+        -- 4. REPOSO → AUTO2
+        inputs <= "0100";  -- AUTO1 → AUTO2
+        wait for 50 * clk_period;
+        inputs <= "0100";  -- Mantener en AUTO2
+        wait for 50 * clk_period;
 
-        -- Paso 7: Reset desde el bloque maestro y desactivar SETA
-        report "Paso 7: Reset desde el bloque maestro para volver a REPOSO";
-        reset_tb <= '1';
-        SETA_tb <= '0'; -- Desactiva SETA
-        wait for 20 ns;
-        reset_tb <= '0';
-        wait for 40 ns;
+        -- 5. AUTO2 → AUTO1
+        inputs <= "1000";  -- REPOSO intermedio
+        wait for 50 * clk_period;
 
-        -- Paso 8: Reactivar SETA y repetir transiciones
-        report "Paso 8: Reactivar SETA y repetir transiciones para validar funcionalidad";
-        SETA_tb <= '1'; -- Reactiva SETA
-        wait for 20 ns;
+        inputs <= "0100";  -- AUTO1
+        wait for 50 * clk_period;
 
-        btn_avanzar_tb <= '1';
-        wait for CLK_PERIOD;
-        btn_avanzar_tb <= '0';
-        wait for 200 ns; 
+        -- 6. AUTO1 → REPOSO
+        inputs <= "1000";  -- REPOSO
+        wait for 50 * clk_period;
 
-        btn_retroceder_tb <= '1';
-        wait for CLK_PERIOD;
-        btn_retroceder_tb <= '0';
-        wait for 200 ns; 
-
-        -- Fin de la simulación
-        report "Fin de la simulación.";
+        -- Final de la simulación
+        report "Simulación completada con la secuencia deseada";
         wait;
     end process;
 
