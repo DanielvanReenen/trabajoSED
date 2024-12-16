@@ -12,8 +12,9 @@ architecture Behavioral of AUTO_tb is
             reset : in std_logic;
             btn_avanzar : in std_logic;
             btn_retroceder : in std_logic;
+            SETA : in std_logic; -- Nueva señal SETA
             salida_vector : out std_logic_vector(11 downto 0);
-            salida_salir : out std_logic
+            flag : out std_logic -- Salida flag (antes salida_salir)
         );
     end component;
 
@@ -22,8 +23,9 @@ architecture Behavioral of AUTO_tb is
     signal reset_tb : std_logic := '0';
     signal btn_avanzar_tb : std_logic := '0';
     signal btn_retroceder_tb : std_logic := '0';
+    signal SETA_tb : std_logic := '0'; -- Señal SETA para activar el sistema
     signal salida_vector_tb : std_logic_vector(11 downto 0);
-    signal salida_salir_tb : std_logic;
+    signal flag_tb : std_logic;
 
     -- Constante para el periodo del reloj
     constant CLK_PERIOD : time := 10 ns;
@@ -36,8 +38,9 @@ begin
             reset => reset_tb,
             btn_avanzar => btn_avanzar_tb,
             btn_retroceder => btn_retroceder_tb,
+            SETA => SETA_tb,
             salida_vector => salida_vector_tb,
-            salida_salir => salida_salir_tb
+            flag => flag_tb
         );
 
     -- Generación del reloj
@@ -61,40 +64,49 @@ begin
         reset_tb <= '0';
         wait for 20 ns;
 
-        -- Paso 2: Transitar a AUTO1
-        report "Paso 2: Transitar a AUTO1";
+        -- Paso 2: Activar SETA para habilitar el sistema
+        report "Paso 2: Activar SETA para habilitar el sistema";
+        SETA_tb <= '1';
+        wait for 20 ns;
+
+        -- Paso 3: Transitar a AUTO1
+        report "Paso 3: Transitar a AUTO1";
         btn_avanzar_tb <= '1';
         wait for CLK_PERIOD;
         btn_avanzar_tb <= '0';
         wait for 200 ns; 
 
-        -- Paso 3: Transitar a AUTO2
-        report "Paso 3: Transitar a AUTO2";
+        -- Paso 4: Transitar a AUTO2
+        report "Paso 4: Transitar a AUTO2";
         btn_avanzar_tb <= '1';
         wait for CLK_PERIOD;
         btn_avanzar_tb <= '0';
         wait for 200 ns; 
 
-        -- Paso 4: Ir al estado SALIR
-        report "Paso 4: Transitar a SALIR";
+        -- Paso 5: Ir al estado SALIR
+        report "Paso 5: Transitar a SALIR";
         btn_avanzar_tb <= '1';
         wait for CLK_PERIOD;
         btn_avanzar_tb <= '0';
         wait for 40 ns;
 
-        -- Paso 5: Permanecer en SALIR
-        report "Paso 5: Permanecer en estado SALIR";
+        -- Paso 6: Permanecer en SALIR
+        report "Paso 6: Permanecer en estado SALIR";
         wait for 100 ns;
 
-        -- Paso 6: Reset desde el bloque maestro
-        report "Paso 6: Reset desde el bloque maestro para volver a REPOSO";
+        -- Paso 7: Reset desde el bloque maestro y desactivar SETA
+        report "Paso 7: Reset desde el bloque maestro para volver a REPOSO";
         reset_tb <= '1';
+        SETA_tb <= '0'; -- Desactiva SETA
         wait for 20 ns;
         reset_tb <= '0';
         wait for 40 ns;
 
-        -- Paso 7: Repetir transiciones
-        report "Paso 7: Repetir transiciones para validar funcionalidad";
+        -- Paso 8: Reactivar SETA y repetir transiciones
+        report "Paso 8: Reactivar SETA y repetir transiciones para validar funcionalidad";
+        SETA_tb <= '1'; -- Reactiva SETA
+        wait for 20 ns;
+
         btn_avanzar_tb <= '1';
         wait for CLK_PERIOD;
         btn_avanzar_tb <= '0';
