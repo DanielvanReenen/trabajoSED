@@ -31,7 +31,6 @@ architecture Behavioral of FSM_Manual_tb is
   signal inputs_tb : std_logic_vector(3 downto 0);
   signal SETM_tb   : std_logic;
   signal clk_tb    : std_logic := '0';
-  signal DONE_tb   : std_logic;
   signal DUTYS_tb  : std_logic_vector(11 downto 0);
   signal COLOR_tb  : std_logic_vector(1 downto 0);
 
@@ -46,7 +45,6 @@ begin
       inputs => inputs_tb,
       SETM   => SETM_tb,
       clk    => clk_tb,
-      DONE   => DONE_tb,
       DUTYS  => DUTYS_tb,
       COLOR  => COLOR_tb
     );
