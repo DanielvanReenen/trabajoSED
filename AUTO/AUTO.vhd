@@ -4,21 +4,18 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity AUTO is
     Port (
-        clk : in std_logic;
-        reset : in std_logic;
-        btn_avanzar : in std_logic;
-        btn_retroceder : in std_logic;
-        SETA : in std_logic; -- Nueva señal de entrada desde la entidad maestra
-        salida_vector : out std_logic_vector(11 downto 0); 
-        flag : out std_logic 
+        clk : in std_logic;       
+        inputs : in std_logic_vector(3 downto 0); 
+        SETA: in std_logic;
+        salida_vector : out std_logic_vector(11 downto 0) 
     );
 end AUTO;
 
 architecture Behavioral of AUTO is
     -- Definición de los estados
-    type state_type is (REPOSO, AUTO1, AUTO2, SALIR);
-    signal current_state, next_state : state_type;
-
+    type state_type is (REPOSO, AUTO1, AUTO2);
+    signal current_state : state_type :=REPOSO;
+    signal next_state: state_type;
     -- Señales para generar valores aleatorios
     signal random_value_auto1 : std_logic_vector(11 downto 0) := "100010111001";
     signal random_value_auto2 : std_logic_vector(11 downto 0) := "001111001011";
@@ -27,98 +24,77 @@ architecture Behavioral of AUTO is
     signal last_value : std_logic_vector(11 downto 0) := (others => '0');
 begin
 
-    -- Proceso para la lógica de estado
-    state_logic : process(clk, reset)
-    begin
-        if reset = '1' then
-            current_state <= REPOSO;
-        elsif rising_edge(clk) then
-            current_state <= next_state;
-        end if;
-    end process;
+-- Registro de estados
+  ST_REG : process(SETA, clk)
+  begin
+    if SETA = '0' THEN
+      current_state <= REPOSO;
+    elsif rising_edge(clk) then
+      current_state <= next_state;
+    end if;
+  end process;
 
     -- Proceso para la transición entre estados
-    state_transition : process(current_state, btn_avanzar, btn_retroceder, SETA)
+    state_transition : process(current_state, inputs)
     begin
-        if SETA = '0' then
-            next_state <= REPOSO; -- Si SETA está en '0', forzar estado REPOSO
-        else
-            case current_state is
-                when REPOSO =>
-                    if btn_avanzar = '1' then
-                        next_state <= AUTO1;
-                    else
-                        next_state <= REPOSO;
-                    end if;
-
-                when AUTO1 =>
-                    if btn_avanzar = '1' then
-                        next_state <= AUTO2;
-                    elsif btn_retroceder = '1' then
-                        next_state <= REPOSO;
-                    else
-                        next_state <= AUTO1;
-                    end if;
-
-                when AUTO2 =>
-                    if btn_avanzar = '1' then
-                        next_state <= SALIR;
-                    elsif btn_retroceder = '1' then
-                        next_state <= AUTO1;
-                    else
-                        next_state <= AUTO2;
-                    end if;
-
-                when SALIR =>
-                    next_state <= SALIR; -- Mantenerse en SALIR indefinidamente
-
-                when others =>
+        case current_state is
+            when REPOSO =>
+                if inputs = "0100" then
+                    next_state <= AUTO1;
+                else
                     next_state <= REPOSO;
-            end case;
-        end if;
+                end if;
+
+            when AUTO1 =>
+                if inputs = "0100" then
+                    next_state <= AUTO2;
+                elsif inputs = "1000" then
+                    next_state <= REPOSO;
+                else
+                    next_state <= AUTO1;
+                end if;
+
+            when AUTO2 =>
+                if inputs = "0100" then
+                    next_state <= REPOSO;
+                elsif inputs = "1000" then
+                    next_state <= AUTO1;
+                else
+                    next_state <= AUTO2;
+                end if;
+
+            when others =>
+                next_state <= REPOSO;
+        end case;
     end process;
 
     -- Proceso para la lógica de salida
     output_logic : process(clk)
     begin
         if rising_edge(clk) then
-            if SETA = '0' then
-                -- Si SETA está en '0', salida en REPOSO independientemente del estado
-                salida_vector <= (others => '0');
-                flag <= '0';
-            else
-                case current_state is
-                    when REPOSO =>
-                        salida_vector <= last_value; 
-                        flag <= '0'; 
+            case current_state is
+                when REPOSO =>
+                    salida_vector <= last_value; -- Mantener el último valor
 
-                    when AUTO1 =>
-                        salida_vector <= random_value_auto1; 
-                        flag <= '0'; 
-                        last_value <= random_value_auto1; 
+                when AUTO1 =>
+                    salida_vector <= random_value_auto1; -- Generar valores aleatorios
+                    last_value <= random_value_auto1; -- Guardar el último valor
 
-                    when AUTO2 =>
-                        salida_vector <= random_value_auto2; 
-                        flag <= '0'; 
-                        last_value <= random_value_auto2; 
+                when AUTO2 =>
+                    salida_vector <= random_value_auto2; -- Generar valores aleatorios
+                    last_value <= random_value_auto2; -- Guardar el último valor
 
-                    when SALIR =>
-                        salida_vector <= last_value; 
-                        flag <= '1'; 
-
-                    when others =>
-                        salida_vector <= (others => '0'); 
-                        flag <= '0'; 
-                end case;
-            end if;
+               when others =>
+                    salida_vector <= (others => '0'); -- Default
+            end case;
         end if;
     end process;
 
-    -- Generador aleatorio para AUTO1
+   -- Generador aleatorio para AUTO1
     random_generator_auto1 : process(clk)
     begin
         if rising_edge(clk) then
-            if current_state = AUTO1 and SETA = '1' then
+            if current_state = AUTO1 then
                 random_value_auto1(11) <= random_value_auto1(10) xor random_value_auto1(7) xor random_value_auto1(4) xor random_value_auto1(0);
                 random_value_auto1(10) <= random_value_auto1(4) xor random_value_auto1(6) xor random_value_auto1(3) xor random_value_auto1(11);
                 random_value_auto1(9)  <= random_value_auto1(1) xor random_value_auto1(5) xor random_value_auto1(2) xor random_value_auto1(10);
@@ -139,7 +115,7 @@ begin
     random_generator_auto2 : process(clk)
     begin
         if rising_edge(clk) then
-            if current_state = AUTO2 and SETA = '1' then
+            if current_state = AUTO2 then
                 random_value_auto2(11) <= random_value_auto2(0) xor random_value_auto2(8) xor random_value_auto2(5) xor random_value_auto2(0);
                 random_value_auto2(10) <= random_value_auto2(6) xor random_value_auto2(7) xor random_value_auto2(4) xor random_value_auto2(11);
                 random_value_auto2(9)  <= random_value_auto2(2) xor random_value_auto2(6) xor random_value_auto2(3) xor random_value_auto2(10);
@@ -155,5 +131,4 @@ begin
             end if;
         end if;
     end process;
-    
 end Behavioral;
