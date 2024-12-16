@@ -102,19 +102,19 @@ begin
     -- Cambiar al estado AZUL y disminuir su duty
     inputs_tb <= "1000";  
     wait for clk_period;
-    inputs_tb <= "0001";
+    inputs_tb <= "0010";
     wait for 2 * clk_period;
 
     -- Cambiar al estado VERDE y dismuinuir su duty
     inputs_tb <= "1000";
     wait for clk_period;  
-    inputs_tb <= "0001";
+    inputs_tb <= "0010";
     wait for clk_period;
 
     -- Cambiar al estado ROJO y disminuir su duty
     inputs_tb <= "1000";  
     wait for clk_period;
-    inputs_tb <= "0001";
+    inputs_tb <= "0010";
     wait for clk_period;
     
     -- Salir 
